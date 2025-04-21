@@ -1,7 +1,5 @@
 import { useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 const SENSITIVE_TAGS = [
     'Author',
     'GPSLatitude',
@@ -21,10 +19,8 @@ const SENSITIVE_TAGS = [
     'OwnerName',
 ]
 
-const MetadataViewer = ({ metadata}) => {
+const MetadataViewer = ({ metadata, onRemove}) => {
     const [selected, setSelected] = useState({});
-
-    if (!metadata) return <p>Nenhum metadado</p>;
 
     const entries = Object.entries(metadata).filter(
         ([, value]) => value !== null && value !== ''
@@ -42,57 +38,8 @@ const MetadataViewer = ({ metadata}) => {
 
     const handleRemoveMetadata = async () => {
         const selectedKeys = Object.keys(selected).filter(k => selected[k]);
-
-        if (!selectedKeys.length) return alert("Nenhum metadado selecionado");
-
-        try {
-            const response = await fetch(`${API_URL}/remove-metadata`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    fileName: metadata.FileName,
-                    tags: selectedKeys
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error('Erro ao remover metadados');
-            }
-
-
-            // Extrai o nome do arquivo do header 'Content-Disposition'
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let fileName = metadata.FileName;
-
-            if (contentDisposition) {
-                const match = contentDisposition.match(/filename="(.+)"/);
-                console.log(contentDisposition)
-                if (match) {
-                    fileName = match[1]
-                }
-            }
-            
-            // Converte a resposta em um blob (arquivo binário)
-            const blob = await response.blob();
-
-            // Cria um link temporário para download
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            a.click();
-
-            // Limpa o objeto URL
-            window.URL.revokeObjectURL(url);
-
-
-        } catch (error) {
-            console.error('Erro ao remover metadados:', error);
-            alert('Erro ao remover metadados');
-        }
-    };
+        await onRemove(selectedKeys);
+    }
 
     return (
         <div className="container w-full">
