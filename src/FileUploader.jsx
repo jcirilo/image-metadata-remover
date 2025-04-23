@@ -5,7 +5,7 @@ import ImageView from "./ImageView";
 import MapView from "./MapView";
 import VideoView from "./VideoView";
 
-const LOCAL_SERVER_URL = "http://localhost:3001"
+const SERVER_URL = "http://localhost:3001"
 
 const FileUploader = () => {
     const [metadata, setMetadata] = useState(null);
@@ -16,11 +16,11 @@ const FileUploader = () => {
     const [hasGeo, setHasGeo] = useState(false);
     const [geo, setGeo] = useState(null);
     
-    const sendImageToServer = async (file) => {
+    const uploadFileToServer = async (file) => {
         const formData = new FormData();
         formData.append('image', file);
         
-        const response = await fetch(`${LOCAL_SERVER_URL}/upload`, {
+        const response = await fetch(`${SERVER_URL}/upload`, {
             method: 'POST', 
             body: formData
         });
@@ -28,8 +28,8 @@ const FileUploader = () => {
         return response.json()
     }
 
-    const downloadImageFromServer = async (selectedKeys, metadata) => {
-        const response = await fetch(`${LOCAL_SERVER_URL}/remove-metadata`, {
+    const getFileFromServer = async (selectedKeys, metadata) => {
+        const response = await fetch(`${SERVER_URL}/remove-metadata`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ const FileUploader = () => {
                 setLoading(true); 
                 setMetadata(null);
 
-                const data = await sendImageToServer(file);
+                const data = await uploadFileToServer(file);
 
                 const fileUrl = URL.createObjectURL(file)
                 const isImage = data.metadata.MIMEType.startsWith("image")
@@ -77,16 +77,15 @@ const FileUploader = () => {
         }
     }
 
-    const handleRemoveMetadata = async (selectedKeys) => {
+    const handleRemoveMetadata = async (selectedTags) => {
 
-        if (!selectedKeys.length) {
+        if (!selectedTags.length) {
             return alert("Nenhum metadado selecionado");
         }
 
         try {
-            const response = await downloadImageFromServer(selectedKeys, metadata);
+            const response = await getFileFromServer(selectedTags, metadata);
 
-            // Extrai o nome do arquivo do header 'Content-Disposition'
             const contentDisposition = response.headers.get('Content-Disposition');
             let fileName = metadata.FileName;
 
@@ -98,17 +97,14 @@ const FileUploader = () => {
                 }
             }
             
-            // Converte a resposta em um blob (arquivo binário)
             const blob = await response.blob();
 
-            // Cria um link temporário para download
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = fileName;
             a.click();
 
-            // Limpa o objeto URL
             window.URL.revokeObjectURL(url);
 
         } catch (error) {
